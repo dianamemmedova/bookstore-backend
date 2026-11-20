@@ -1,0 +1,66 @@
+1. npm install bcryptjs jsonwebtoken express-rate-limit
+
+bcryptjs -  parolu hash edir. Saf JavaScript olduğu üçün Windows-da quraşdırma problemi yoxdur.
+jsonwebtoken -  token yaradır və yoxlayır.
+express-rate-limit - eyni IP-dən çox sorğunu məhdudlaşdırır.
+
+
+2.  npm install -D @types/jsonwebtoken
+
+jsonwebtoken üçün lazımlı type leri yükləyirik , development mühiti üçün lazımlıdır
+
+3. mkdir src\schemas, src\services, src\controllers, src\routes 
+
+bu qovluqları yaradırıq 
+
+
+4.JWT_TTL_SECONDS=604800 
+
+.env də bunu əlavə edirik . Bu, tokenin ömrüdür: 7 gün (604800 saniyə).
+
+5. src/config.ts: bir sətir əlavə et
+
+  JWT_TTL_SECONDS: z.coerce.number().int().min(60).default(604800),
+
+  zodla yoxlayırıq 
+  
+
+6. src/lib/jwt.ts - faylini yaradiriq
+
+------------------------------------------
+
+7. src/schemas/auth.schema.ts - faylini yaziriq
+
+Auth Schema istifadəçinin qeydiyyat (register) və giriş (login) zamanı
+ göndərdiyi məlumatların düzgün olub-olmadığını yoxlamaq üçün yaradılır.
+
+ .refine((p) => Buffer.byteLength(p, "utf8") <= 72, {
+  error: "Parol 72 baytdan uzun ola bilməz",
+})
+
+Burada əlavə yoxlama aparırıq.
+
+Buffer.byteLength() mətnin yaddaşda neçə bayt yer tutduğunu hesablayır.Niyə 72 bayt?
+
+Çünki layihəmizdə bcrypt istifadə etdiyimiz üçün parolun 72 baytlıq limitini nəzərə alırıq.
+
+Burada p password dəyəridir.
+
+Əgər password 72 baytdan uzundursa, xəta qaytarılır.
+
+
+----------------------------------------------------------------
+
+8.src/services/auth.service.ts faylini yaradiriq
+
+auth servisde authorization ucun lazim olan butun biznes mentiqleri funksiylar filan yazilir
+
+9 . src/controllers/auth.controller.ts - faylini yaradiriq 
+ http sorğularini qebul edir auth.schema.ts ile zod yoxlanilmasi aparir gelen sorğularin formatlatini yoxlayir
+ sonra auth.serviceni işe salib en son cavabi gönderir frontende 
+
+
+ 10. middlevare/rate-limit.ts - fayili yaradiriq 
+  bir ip ile mueyyen vaxd erzinde gonderile bilecek sorğularin limitini qoyuruq
+
+11. routes/auth.route.ts yaradiriq 
