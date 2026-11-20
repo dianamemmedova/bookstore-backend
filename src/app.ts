@@ -9,6 +9,7 @@ import { config } from "./config";
 import authRoutes from "./routes/auth.routes";
 import meRoutes from "./routes/me.routes";
 import adminRoutes from "./routes/admin.routes";
+import bookRoutes from "./routes/book.routes";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.get("/health", async (_req, res) => {
 app.use("/auth", authRoutes);
 app.use("/me", meRoutes);
 app.use("/admin", adminRoutes);
+app.use("/books", bookRoutes);
 // Route-lar həmişə bunlardan əvvəl, bu ikisi isə ən sonda qalmalıdır
 app.use(notFound);
 app.use(errorHandler);
