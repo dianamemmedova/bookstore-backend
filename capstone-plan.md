@@ -2,7 +2,7 @@
 
 **Ad, soyad:** Diana Memmedova
 **Layihənin adı:** Book & Store API
-**GitHub repo linki:** (repo yaradandan sonra bura yaz)
+**GitHub repo linki:** https://github.com/dianamemmedova/bookstore-backend
 
 ---
 
@@ -130,10 +130,10 @@ Siyahı endpoint-ləri (`/books`, `/orders`, `/books/:id/reviews`) pagination + 
 
 | Mərhələ | Nə hazır olacaq | Tarix |
 |---|---|---|
-| 1 | Repo, Prisma schema, migration, auth, `/me`, rollar | |
-| 2 | Kataloq, səbət, wishlist (Zod + error handling ilə) | |
-| 3 | Promo, sifariş (checkout, stok, ləğv), rəylər, biznes qaydaları + testlər | |
-| 4 | OpenAPI sənədi, Docker, CI, frontun qoşulması, README | |
+| 1 | Repo, Prisma schema, migration, auth, `/me`, rollar | |  10.11.2026
+| 2 | Kataloq, səbət, wishlist (Zod + error handling ilə) | |   20.11.2026
+| 3 | Promo, sifariş (checkout, stok, ləğv), rəylər, biznes qaydaları + testlər | |  25.11.2026
+| 4 | OpenAPI sənədi, Docker, CI, frontun qoşulması, README | |  30.11.2026
 
 ---
 

@@ -13,11 +13,14 @@ enum Role {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now()) @map("created_at")
+  id             Int      @id @default(autoincrement())
+  email          String   @unique
+  firstName      String   @map("first_name")
+  lastName       String   @map("last_name")
+  passwordHash   String   @map("password_hash")
+  role           Role     @default(USER)
+  marketingOptIn Boolean  @default(false) @map("marketing_opt_in")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@map("users")
 }

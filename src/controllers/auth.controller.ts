@@ -3,8 +3,8 @@ import * as authService from "../services/auth.service";
 import { loginSchema, registerSchema } from "../schemas/auth.schema";
 
 export async function register(req: Request, res: Response) {
-  const { email, password } = registerSchema.parse(req.body);
-  res.status(201).json(await authService.registerUser(email, password));
+  const input = registerSchema.parse(req.body);
+  res.status(201).json(await authService.registerUser(input));
 }
 
 export async function login(req: Request, res: Response) {
