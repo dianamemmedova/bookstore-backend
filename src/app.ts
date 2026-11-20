@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.routes";
 import meRoutes from "./routes/me.routes";
 import adminRoutes from "./routes/admin.routes";
 import bookRoutes from "./routes/book.routes";
+import { UPLOADS_DIR } from "./lib/cover-storage";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get("/health", async (_req, res) => {
     res.status(503).json({ status: "error", db: "down" });
   }
 });
+app.use("/uploads", express.static(UPLOADS_DIR, { index: false, dotfiles: "deny" }));
 app.use("/auth", authRoutes);
 app.use("/me", meRoutes);
 app.use("/admin", adminRoutes);

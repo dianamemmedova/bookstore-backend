@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, RequestHandler } from "express";
 import * as z from "zod";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../lib/errors";
 import { isPrismaError, PrismaErrorCode } from "../lib/prisma-errors";
+import multer from "multer";
 
 function isBodyParseError(err: unknown): boolean {
   return (
@@ -20,6 +21,15 @@ export function toAppError(err: unknown): AppError {
       message: issue.message,
     }));
     return new ValidationError("Sorğu məlumatları yanlışdır", details);
+  }
+    if (err instanceof multer.MulterError) {
+    const message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "Şəkil 2 MB-dan böyük ola bilməz"
+        : err.code === "LIMIT_UNEXPECTED_FILE"
+          ? "Fayl sahəsinin adı cover olmalıdır"
+          : "Fayl yükləmə xətası";
+    return new ValidationError(message);
   }
   if (isBodyParseError(err)) return new ValidationError("JSON formatı yanlışdır");
   if (isPrismaError(err, PrismaErrorCode.NOT_FOUND)) return new NotFoundError();

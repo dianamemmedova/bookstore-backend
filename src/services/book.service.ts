@@ -2,7 +2,8 @@ import type { Prisma } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 import { NotFoundError } from "../lib/errors";
 import { presentBook } from "../lib/book-presenter";
-import type { ListBooksQuery } from "../schemas/book.schema";
+import { deleteCover, saveCover } from "../lib/cover-storage";
+import type { CreateBookInput, ListBooksQuery, UpdateBookInput } from "../schemas/book.schema";
 
 const ORDER_BY: Record<ListBooksQuery["sort"], Prisma.BookOrderByWithRelationInput> = {
   newest: { id: "desc" },
@@ -54,5 +55,44 @@ export async function listBooks(query: ListBooksQuery) {
 export async function getBook(id: string) {
   const book = await prisma.book.findUnique({ where: { id: Number(id) } });
   if (!book) throw new NotFoundError("Kitab");
+  return presentBook(book);
+}
+
+// --- Admin əməliyyatları ---
+
+// Admin qiyməti AZN ilə göndərir, bazada qəpik kimi saxlanır
+function toCents(price: number) {
+  return Math.round(price * 100);
+}
+
+export async function createBook(input: CreateBookInput) {
+  const { price, ...rest } = input;
+  const book = await prisma.book.create({ data: { ...rest, priceCents: toCents(price) } });
+  return presentBook(book);
+}
+
+export async function updateBook(id: string, input: UpdateBookInput) {
+  const { price, ...rest } = input;
+  // Kitab yoxdursa Prisma P2025 atır, error handler onu 404-ə çevirir
+  const book = await prisma.book.update({
+    where: { id: Number(id) },
+    data: { ...rest, ...(price !== undefined && { priceCents: toCents(price) }) },
+  });
+  return presentBook(book);
+}
+
+export async function deleteBook(id: string): Promise<void> {
+  // Sifarişlərdə istifadə olunan kitabı silməyə baza icazə verməyəcək (409 RELATION_CONFLICT)
+  const book = await prisma.book.delete({ where: { id: Number(id) } });
+  await deleteCover(book.coverUrl);
+}
+
+export async function setBookCover(id: string, file: Buffer) {
+  const existing = await prisma.book.findUnique({ where: { id: Number(id) } });
+  if (!existing) throw new NotFoundError("Kitab");
+
+  const coverUrl = await saveCover(file);
+  const book = await prisma.book.update({ where: { id: existing.id }, data: { coverUrl } });
+  await deleteCover(existing.coverUrl);
   return presentBook(book);
 }
