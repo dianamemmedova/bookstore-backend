@@ -21,3 +21,15 @@ export const registerLimiter = rateLimit({
     next(new AppError("Bu IP-dən çox qeydiyyat. 1 saat sonra yenidən yoxlayın", 429, "TOO_MANY_REQUESTS"));
   },
 });
+
+// Promo kodu təxmin etməyin qarşısı: yalnız uğursuz cəhdlər sayılır
+export const promoLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  skipSuccessfulRequests: true,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler: (_req, _res, next) => {
+    next(new AppError("Çox sayda uğursuz promo cəhdi. 15 dəqiqə sonra yenidən yoxlayın", 429, "TOO_MANY_REQUESTS"));
+  },
+});

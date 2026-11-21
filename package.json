@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev && prisma generate",
     "db:studio": "prisma studio",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "seed:promos": "tsx scripts/seed-promos.ts"
   },
   "keywords": [],
   "author": "",

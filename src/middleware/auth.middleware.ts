@@ -32,9 +32,14 @@ export const authMiddleware: RequestHandler = (req, _res, next) => {
 
  
 }
-
-
-
+// Token varsa yoxlayır (səhvdirsə 401), yoxdursa qonaq kimi davam etdirir.
+export const optionalAuth: RequestHandler = (req, res, next) => {
+  if (!req.headers.authorization) {
+    next();
+    return;
+  }
+  authMiddleware(req, res, next);
+};
 
 
 
