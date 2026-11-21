@@ -22,6 +22,8 @@ model User {
   marketingOptIn Boolean  @default(false) @map("marketing_opt_in")
   createdAt      DateTime @default(now()) @map("created_at")
   cartItems CartItem[]
+  wishlists Wishlist[]
+  promoRedemptions PromoRedemption[]
 
   @@map("users")
 }
@@ -40,7 +42,9 @@ model Book {
   stock       Int?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-  cartItems CartItem[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+
   @@map("books")
 }
 
@@ -59,4 +63,64 @@ model CartItem {
   @@unique([userId, bookId])
   @@index([userId])
   @@map("cart_items")
+}
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String
+  isPublic  Boolean  @default(false) @map("is_public")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items WishlistItem[]
+
+  // Bir istifadəçinin iki siyahısı eyni adda ola bilməz
+  @@unique([userId, name])
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id         Int      @id @default(autoincrement())
+  wishlistId Int      @map("wishlist_id")
+  bookId     Int      @map("book_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  wishlist Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  book     Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  // Eyni kitab bir siyahıda yalnız bir dəfə
+  @@unique([wishlistId, bookId])
+  @@map("wishlist_items")
+}
+
+model PromoCode {
+  id              Int       @id @default(autoincrement())
+  code            String    @unique
+  description     String?
+  discountPercent Int       @map("discount_percent")
+  isActive        Boolean   @default(true) @map("is_active")
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  redemptions PromoRedemption[]
+
+  @@map("promo_codes")
+}
+
+// Kim hansı kodu işlədib. (promoCodeId, userId) unikaldır: bir istifadəçi eyni kodu yalnız bir dəfə işlədə bilər.
+model PromoRedemption {
+  id          Int      @id @default(autoincrement())
+  promoCodeId Int      @map("promo_code_id")
+  userId      Int      @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Restrict: istifadə olunmuş kodu silmək olmaz (tarixçə itməsin)
+  promoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Restrict)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([promoCodeId, userId])
+  @@index([userId])
+  @@map("promo_redemptions")
 }

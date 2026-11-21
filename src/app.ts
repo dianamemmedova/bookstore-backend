@@ -12,6 +12,7 @@ import adminRoutes from "./routes/admin.routes";
 import bookRoutes from "./routes/book.routes";
 import { UPLOADS_DIR } from "./lib/cover-storage";
 import cartRoutes from "./routes/cart.routes";
+import { publicWishlistRouter, wishlistRouter } from "./routes/wishlist.routes";
 
 const app = express();
 
@@ -35,6 +36,8 @@ app.use("/me", meRoutes);
 app.use("/admin", adminRoutes);
 app.use("/books", bookRoutes);
 app.use("/cart", cartRoutes);
+app.use("/wishlists", wishlistRouter);
+app.use("/public/wishlists", publicWishlistRouter);
 // Route-lar həmişə bunlardan əvvəl, bu ikisi isə ən sonda qalmalıdır
 app.use(notFound);
 app.use(errorHandler);
