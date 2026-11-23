@@ -14,6 +14,8 @@ import { UPLOADS_DIR } from "./lib/cover-storage";
 import cartRoutes from "./routes/cart.routes";
 import { publicWishlistRouter, wishlistRouter } from "./routes/wishlist.routes";
 import promoRoutes from "./routes/promo.routes";
+import orderRoutes from "./routes/order.routes";
+import { bookReviewRouter, reviewRouter } from "./routes/review.routes";
 
 const app = express();
 
@@ -35,9 +37,12 @@ app.use("/uploads", express.static(UPLOADS_DIR, { index: false, dotfiles: "deny"
 app.use("/auth", authRoutes);
 app.use("/me", meRoutes);
 app.use("/admin", adminRoutes);
+app.use("/books/:bookId/reviews", bookReviewRouter);
 app.use("/books", bookRoutes);
+app.use("/reviews", reviewRouter);
 app.use("/cart", cartRoutes);
 app.use("/promo", promoRoutes);
+app.use("/orders", orderRoutes);
 app.use("/wishlists", wishlistRouter);
 app.use("/public/wishlists", publicWishlistRouter);
 // Route-lar həmişə bunlardan əvvəl, bu ikisi isə ən sonda qalmalıdır

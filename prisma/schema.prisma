@@ -11,6 +11,18 @@ enum Role {
   USER
   ADMIN
 }
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  DELIVERED
+  CANCELLED
+}
+
+// Yalnız seçim saxlanır: kart məlumatları (nömrə, CVV) heç vaxt serverə gəlmir və saxlanmır
+enum PayMethod {
+  CARD
+  CASH
+}
 
 model User {
   id             Int      @id @default(autoincrement())
@@ -24,6 +36,9 @@ model User {
   cartItems CartItem[]
   wishlists Wishlist[]
   promoRedemptions PromoRedemption[]
+  orders Order[]
+  reviews Review[]
+  reviewVotes ReviewVote[]
 
   @@map("users")
 }
@@ -44,6 +59,8 @@ model Book {
   updatedAt   DateTime @updatedAt @map("updated_at")
   cartItems     CartItem[]
   wishlistItems WishlistItem[]
+  orderItems    OrderItem[]
+  reviews       Review[]
 
   @@map("books")
 }
@@ -105,6 +122,7 @@ model PromoCode {
   createdAt       DateTime  @default(now()) @map("created_at")
 
   redemptions PromoRedemption[]
+  orders      Order[]
 
   @@map("promo_codes")
 }
@@ -123,4 +141,102 @@ model PromoRedemption {
   @@unique([promoCodeId, userId])
   @@index([userId])
   @@map("promo_redemptions")
+}
+
+model Order {
+  id               Int         @id @default(autoincrement())
+  userId           Int         @map("user_id")
+  status           OrderStatus @default(PENDING)
+  payMethod        PayMethod   @map("pay_method")
+
+  // Pul qəpiklə (integer). Sifariş anındakı hesablama dondurulur: sonra promo/qiymət dəyişsə də köhnə sifariş dəyişmir.
+  subtotalCents    Int         @map("subtotal_cents")
+  discountCents    Int         @map("discount_cents")
+  deliveryFeeCents Int         @map("delivery_fee_cents")
+  totalCents       Int         @map("total_cents")
+
+  // Promo: kod mətni və faiz snapshot kimi qalır, promoCodeId isə kod silinərsə null olur
+  promoCodeId      Int?        @map("promo_code_id")
+  promoCode        String?     @map("promo_code")
+  discountPercent  Int?        @map("discount_percent")
+
+  fullName         String      @map("full_name")
+  phone            String
+  city             String
+  street           String
+  building         String      @default("")
+  apartment        String      @default("")
+  deliveryDate     DateTime    @map("delivery_date") @db.Date
+
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  cancelledAt      DateTime?   @map("cancelled_at")
+
+  // Restrict: sifarişi olan istifadəçi silinə bilməz (tarixçə itməsin)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  promo     PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  items     OrderItem[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id             Int     @id @default(autoincrement())
+  orderId        Int     @map("order_id")
+  bookId         Int     @map("book_id")
+
+  // Snapshot: kitab sonradan dəyişsə də sifarişdə o vaxtkı ad/qiymət qalır
+  title          String
+  author         String
+  coverUrl       String? @map("cover_url")
+  unitPriceCents Int     @map("unit_price_cents")
+  quantity       Int
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // Restrict: sifarişdə olan kitabı silmək olmaz (409 RELATION_CONFLICT)
+  book  Book  @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  bookId      Int      @map("book_id")
+  rating      Int
+  title       String
+  body        String
+  recommended Boolean
+  // "Faydalı oldu?" sayğacları: səs verilərkən yenidən hesablanır (sıralama üçün hər dəfə COUNT etməyək)
+  helpfulYes  Int      @default(0) @map("helpful_yes")
+  helpfulNo   Int      @default(0) @map("helpful_no")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book  Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  votes ReviewVote[]
+
+  // Bir istifadəçi bir kitaba yalnız bir rəy yaza bilər
+  @@unique([userId, bookId])
+  @@index([bookId, createdAt])
+  @@map("reviews")
+}
+
+model ReviewVote {
+  id        Int      @id @default(autoincrement())
+  reviewId  Int      @map("review_id")
+  userId    Int      @map("user_id")
+  helpful   Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Bir istifadəçi bir rəyə yalnız bir səs verə bilər
+  @@unique([reviewId, userId])
+  @@map("review_votes")
 }
