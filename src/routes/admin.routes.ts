@@ -6,6 +6,7 @@ import * as orderController from "../controllers/admin-order.controller";
 import * as contactController from "../controllers/contact.controller";
 import * as giftCardController from "../controllers/gift-card.controller";
 import * as storeController from "../controllers/store.controller";
+import * as statsController from "../controllers/admin-stats.controller";
 import { adminOnly } from "../middleware/stacks";
 import { uploadCover } from "../middleware/upload";
 
@@ -45,5 +46,10 @@ router.delete("/stores/:id", storeController.deleteStore);
 router.post("/events", storeController.createEvent);
 router.patch("/events/:id", storeController.updateEvent);
 router.delete("/events/:id", storeController.deleteEvent);
+
+router.get("/stats/overview", statsController.overview);
+router.get("/stats/sales", statsController.sales);
+router.get("/stats/top-books", statsController.topBooks);
+router.get("/stats/low-stock", statsController.lowStock);
 
 export default router;
