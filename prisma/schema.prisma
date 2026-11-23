@@ -17,6 +17,16 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
 }
+enum EventType {
+  AUTHOR
+  KIDS
+  OTHER
+}
+
+enum EventLocation {
+  IN_STORE
+  VIRTUAL
+}
 
 // Yalnız seçim saxlanır: kart məlumatları (nömrə, CVV) heç vaxt serverə gəlmir və saxlanmır
 enum PayMethod {
@@ -283,4 +293,40 @@ model GiftCard {
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@map("gift_cards")
+}
+
+model Store {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  address   String
+  lat       Float
+  lng       Float
+  phone     String
+  hours     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  events StoreEvent[]
+
+  @@map("stores")
+}
+
+model StoreEvent {
+  id           Int           @id @default(autoincrement())
+  storeId      Int           @map("store_id")
+  title        String
+  type         EventType
+  locationType EventLocation @map("location_type")
+  // Tarix və saat ayrıca saxlanır (frontdakı formaya uyğun): "2026-12-05" və "14:00" (Bakı vaxtı)
+  date         DateTime      @db.Date
+  time         String
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  // Cascade: mağaza silinəndə onun tədbirləri də silinir
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([date, time])
+  @@index([storeId])
+  @@map("store_events")
 }

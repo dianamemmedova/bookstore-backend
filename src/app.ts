@@ -18,6 +18,7 @@ import orderRoutes from "./routes/order.routes";
 import contactRoutes from "./routes/contact.routes";
 import newsletterRoutes from "./routes/newsletter.routes";
 import giftCardRoutes from "./routes/gift-card.routes";
+import { eventRouter, storeRouter } from "./routes/store.routes";
 import { bookReviewRouter, reviewRouter } from "./routes/review.routes";
 
 const app = express();
@@ -46,6 +47,8 @@ app.use("/reviews", reviewRouter);
 app.use("/contact", contactRoutes);
 app.use("/newsletter", newsletterRoutes);
 app.use("/gift-cards", giftCardRoutes);
+app.use("/stores", storeRouter);
+app.use("/events", eventRouter);
 app.use("/cart", cartRoutes);
 app.use("/promo", promoRoutes);
 app.use("/orders", orderRoutes);
