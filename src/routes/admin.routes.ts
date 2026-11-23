@@ -3,6 +3,8 @@ import * as controller from "../controllers/admin.controller";
 import * as bookController from "../controllers/admin-book.controller";
 import * as promoController from "../controllers/admin-promo.controller";
 import * as orderController from "../controllers/admin-order.controller";
+import * as contactController from "../controllers/contact.controller";
+import * as giftCardController from "../controllers/gift-card.controller";
 import { adminOnly } from "../middleware/stacks";
 import { uploadCover } from "../middleware/upload";
 
@@ -24,5 +26,15 @@ router.delete("/promos/:id", promoController.deletePromo);
 router.get("/orders", orderController.listOrders);
 router.get("/orders/:id", orderController.getOrder);
 router.patch("/orders/:id/status", orderController.updateStatus);
+
+router.get("/contact-messages", contactController.listMessages);
+router.patch("/contact-messages/:id", contactController.markRead);
+router.delete("/contact-messages/:id", contactController.deleteMessage);
+
+router.get("/newsletter", contactController.listSubscribers);
+
+router.post("/gift-cards", giftCardController.createGiftCard);
+router.get("/gift-cards", giftCardController.listGiftCards);
+router.patch("/gift-cards/:id", giftCardController.updateGiftCard);
 
 export default router;

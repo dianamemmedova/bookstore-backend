@@ -33,3 +33,41 @@ export const promoLimiter = rateLimit({
     next(new AppError("Çox sayda uğursuz promo cəhdi. 15 dəqiqə sonra yenidən yoxlayın", 429, "TOO_MANY_REQUESTS"));
   },
 });
+
+
+// Əlaqə formu: spam-ın qarşısı. Yalnız uğurlu göndərmələr sayılır (validasiya xətası saymır)
+export const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  skipFailedRequests: true,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler: (_req, _res, next) => {
+    next(new AppError("Çox sayda mesaj göndərilib. Bir az sonra yenidən yoxlayın", 429, "TOO_MANY_REQUESTS"));
+  },
+});
+
+export const newsletterLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  skipFailedRequests: true,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler: (_req, _res, next) => {
+    next(new AppError("Çox sayda cəhd. Bir az sonra yenidən yoxlayın", 429, "TOO_MANY_REQUESTS"));
+  },
+});
+
+// Hədiyyə kartı nömrəsini təxmin etməyin qarşısı: yalnız "kart tapılmadı" (404) cavabları sayılır.
+// Format xətası (400) təxmin deyil, ona görə sayılmır.
+export const giftBalanceLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  requestWasSuccessful: (_req, res) => res.statusCode !== 404,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler: (_req, _res, next) => {
+    next(new AppError("Çox sayda uğursuz cəhd. 15 dəqiqə sonra yenidən yoxlayın", 429, "TOO_MANY_REQUESTS"));
+  },
+});

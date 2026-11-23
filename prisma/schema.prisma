@@ -39,6 +39,7 @@ model User {
   orders Order[]
   reviews Review[]
   reviewVotes ReviewVote[]
+  contactMessages ContactMessage[]
 
   @@map("users")
 }
@@ -239,4 +240,47 @@ model ReviewVote {
   // Bir istifadəçi bir rəyə yalnız bir səs verə bilər
   @@unique([reviewId, userId])
   @@map("review_votes")
+}
+
+// "Bizimlə əlaqə" formundan gələn mesajlar. userId yalnız giriş edibsə doldurulur.
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  name      String
+  email     String
+  subject   String
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // SetNull: istifadəçi silinsə mesaj qalır (admin cavab verə bilsin)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([isRead, createdAt])
+  @@map("contact_messages")
+}
+
+model NewsletterSubscriber {
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  isActive         Boolean   @default(true) @map("is_active")
+  // Abunəlikdən çıxma linki üçün gizli token (email-dəki linkdə olacaq, API ilə heç kimə göstərilmir)
+  unsubscribeToken String    @unique @default(uuid()) @map("unsubscribe_token")
+  subscribedAt     DateTime  @default(now()) @map("subscribed_at")
+  unsubscribedAt   DateTime? @map("unsubscribed_at")
+
+  @@map("newsletter_subscribers")
+}
+
+model GiftCard {
+  id           Int       @id @default(autoincrement())
+  code         String    @unique
+  initialCents Int       @map("initial_cents")
+  balanceCents Int       @map("balance_cents")
+  isActive     Boolean   @default(true) @map("is_active")
+  expiresAt    DateTime? @map("expires_at")
+  note         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("gift_cards")
 }
