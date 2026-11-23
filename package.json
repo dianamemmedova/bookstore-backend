@@ -12,7 +12,10 @@
     "db:studio": "prisma studio",
     "smoke": "node scripts/smoke.mjs",
     "seed:promos": "tsx scripts/seed-promos.ts",
-    "seed:stores": "tsx scripts/seed-stores.ts"
+    "seed:stores": "tsx scripts/seed-stores.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "seed:books": "tsx scripts/seed-books.ts"
   },
   "keywords": [],
   "author": "",
@@ -40,11 +43,14 @@
     "@types/multer": "^2.3.0",
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
     "@types/swagger-ui-express": "^4.1.8",
     "esbuild": "^0.28.2",
     "prisma": "^7.10.0",
+    "supertest": "^7.3.2",
     "tsx": "^4.23.15",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.7"
   },
   "type": "module"
 }

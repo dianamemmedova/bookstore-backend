@@ -13,17 +13,31 @@ const ORDER_BY: Record<ListBooksQuery["sort"], Prisma.BookOrderByWithRelationInp
   "price-desc": { priceCents: "desc" },
 };
 
+// Axtarış sözləri: "american history" → ["american", "history"]. Hər söz başlıqda, müəllifdə və ya mövzu teqində axtarılır.
+function searchWords(q: string) {
+  return q.toLowerCase().split(/\s+/).filter((w) => w.length >= 2).slice(0, 6);
+}
+
+function textCondition(q: string, mode: "all" | "any"): Prisma.BookWhereInput {
+  const words = searchWords(q);
+  if (words.length === 0) {
+    return { OR: [{ title: { contains: q, mode: "insensitive" } }, { author: { contains: q, mode: "insensitive" } }] };
+  }
+  const conditions = words.map<Prisma.BookWhereInput>((word) => ({
+    OR: [
+      { title: { contains: word, mode: "insensitive" } },
+      { author: { contains: word, mode: "insensitive" } },
+      { subjects: { has: word } },
+    ],
+  }));
+  return mode === "all" ? { AND: conditions } : { OR: conditions };
+}
+
 export async function listBooks(query: ListBooksQuery) {
   const { page, limit, q, subject, minPrice, maxPrice, sort } = query;
 
-  const where: Prisma.BookWhereInput = {
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { author: { contains: q, mode: "insensitive" } },
-      ],
-    }),
-    ...(subject && { subjects: { has: subject } }),
+  const baseWhere: Prisma.BookWhereInput = {
+    ...(subject && { subjects: { has: subject.toLowerCase() } }),
     ...((minPrice !== undefined || maxPrice !== undefined) && {
       priceCents: {
         ...(minPrice !== undefined && { gte: Math.round(minPrice * 100) }),
@@ -32,16 +46,21 @@ export async function listBooks(query: ListBooksQuery) {
     }),
   };
 
-  const [books, total] = await Promise.all([
-    prisma.book.findMany({
-      where,
-      // id ikinci açar kimi: eyni qiymətli kitablar səhifələr arasında yerini dəyişməsin
-      orderBy: [ORDER_BY[sort], { id: "asc" }],
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.book.count({ where }),
-  ]);
+  // Əvvəl bütün sözlər uyğun gəlməlidir; heç nə tapılmasa və çox söz varsa, hər hansı biri uyğun gəlsin
+  let where: Prisma.BookWhereInput = q ? { AND: [baseWhere, textCondition(q, "all")] } : baseWhere;
+  let total = await prisma.book.count({ where });
+  if (q && total === 0 && searchWords(q).length > 1) {
+    where = { AND: [baseWhere, textCondition(q, "any")] };
+    total = await prisma.book.count({ where });
+  }
+
+  const books = await prisma.book.findMany({
+    where,
+    // id ikinci açar kimi: eyni qiymətli kitablar səhifələr arasında yerini dəyişməsin
+    orderBy: [ORDER_BY[sort], { id: "asc" }],
+    skip: (page - 1) * limit,
+    take: limit,
+  });
 
   return {
     items: books.map(presentBook),

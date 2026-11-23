@@ -49,7 +49,7 @@ const bookFields = {
     .max(10000)
     .nullable(),
   subjects: z
-    .array(z.string().trim().min(1).max(60), { error: "subjects mətn siyahısı olmalıdır" })
+    .array(z.string().trim().toLowerCase().min(1).max(60), { error: "subjects mətn siyahısı olmalıdır" })
     .max(10, { error: "subjects ən çox 10 ədəd ola bilər" }),
   price: priceAzn,
   // null = limitsiz (məs. e-kitab), 0 = qurtarıb

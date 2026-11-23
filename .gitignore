@@ -4,3 +4,4 @@ src/generated
 dist
 uploads
 tmp
+.env.test
