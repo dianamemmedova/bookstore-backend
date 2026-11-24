@@ -1,9 +1,9 @@
 import type { Prisma } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 import { NotFoundError } from "../lib/errors";
-import { presentBook } from "../lib/book-presenter";
+import { presentAdminBook, presentBook } from "../lib/book-presenter";
 import { deleteCover, saveCover } from "../lib/cover-storage";
-import type { CreateBookInput, ListBooksQuery, UpdateBookInput } from "../schemas/book.schema";
+import type { AdminListBooksQuery, CreateBookInput, ListBooksQuery, UpdateBookInput } from "../schemas/book.schema";
 
 const ORDER_BY: Record<ListBooksQuery["sort"], Prisma.BookOrderByWithRelationInput> = {
   newest: { id: "desc" },
@@ -33,8 +33,20 @@ function textCondition(q: string, mode: "all" | "any"): Prisma.BookWhereInput {
   return mode === "all" ? { AND: conditions } : { OR: conditions };
 }
 
-export async function listBooks(query: ListBooksQuery) {
-  const { page, limit, q, subject, minPrice, maxPrice, sort } = query;
+const LOW_STOCK_LIMIT = 5; // stats.service-dəki ilə eyni
+
+function stockCondition(status: AdminListBooksQuery["stockStatus"]): Prisma.BookWhereInput {
+  switch (status) {
+    case "out": return { stock: 0 };
+    case "low": return { stock: { gt: 0, lte: LOW_STOCK_LIMIT } };
+    case "unlimited": return { stock: null };
+    case "in": return { OR: [{ stock: null }, { stock: { gt: 0 } }] };
+    default: return {};
+  }
+}
+
+async function findBooks(query: ListBooksQuery & Pick<AdminListBooksQuery, "stockStatus">) {
+  const { page, limit, q, subject, minPrice, maxPrice, sort, stockStatus } = query;
 
   const baseWhere: Prisma.BookWhereInput = {
     ...(subject && { subjects: { has: subject.toLowerCase() } }),
@@ -45,12 +57,13 @@ export async function listBooks(query: ListBooksQuery) {
       },
     }),
   };
+  const filters: Prisma.BookWhereInput[] = [baseWhere, stockCondition(stockStatus)];
 
   // Əvvəl bütün sözlər uyğun gəlməlidir; heç nə tapılmasa və çox söz varsa, hər hansı biri uyğun gəlsin
-  let where: Prisma.BookWhereInput = q ? { AND: [baseWhere, textCondition(q, "all")] } : baseWhere;
+  let where: Prisma.BookWhereInput = { AND: q ? [...filters, textCondition(q, "all")] : filters };
   let total = await prisma.book.count({ where });
   if (q && total === 0 && searchWords(q).length > 1) {
-    where = { AND: [baseWhere, textCondition(q, "any")] };
+    where = { AND: [...filters, textCondition(q, "any")] };
     total = await prisma.book.count({ where });
   }
 
@@ -62,13 +75,18 @@ export async function listBooks(query: ListBooksQuery) {
     take: limit,
   });
 
-  return {
-    items: books.map(presentBook),
-    page,
-    limit,
-    total,
-    totalPages: Math.ceil(total / limit),
-  };
+  return { books, total, page, limit, totalPages: Math.ceil(total / limit) };
+}
+
+export async function listBooks(query: ListBooksQuery) {
+  const { books, ...meta } = await findBooks(query);
+  return { items: books.map(presentBook), ...meta };
+}
+
+// Admin: dəqiq stok və stok filtri ilə
+export async function listBooksAdmin(query: AdminListBooksQuery) {
+  const { books, ...meta } = await findBooks(query);
+  return { items: books.map(presentAdminBook), ...meta };
 }
 
 export async function getBook(id: string) {
@@ -87,7 +105,7 @@ function toCents(price: number) {
 export async function createBook(input: CreateBookInput) {
   const { price, ...rest } = input;
   const book = await prisma.book.create({ data: { ...rest, priceCents: toCents(price) } });
-  return presentBook(book);
+  return presentAdminBook(book);
 }
 
 export async function updateBook(id: string, input: UpdateBookInput) {
@@ -97,7 +115,7 @@ export async function updateBook(id: string, input: UpdateBookInput) {
     where: { id: Number(id) },
     data: { ...rest, ...(price !== undefined && { priceCents: toCents(price) }) },
   });
-  return presentBook(book);
+  return presentAdminBook(book);
 }
 
 export async function deleteBook(id: string): Promise<void> {
@@ -113,5 +131,5 @@ export async function setBookCover(id: string, file: Buffer) {
   const coverUrl = await saveCover(file);
   const book = await prisma.book.update({ where: { id: existing.id }, data: { coverUrl } });
   await deleteCover(existing.coverUrl);
-  return presentBook(book);
+  return presentAdminBook(book);
 }

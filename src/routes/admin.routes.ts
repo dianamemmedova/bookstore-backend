@@ -15,6 +15,7 @@ router.use(adminOnly);
 
 router.get("/users", controller.listUsers);
 
+router.get("/books", bookController.listBooks);
 router.post("/books", bookController.createBook);
 router.patch("/books/:id", bookController.updateBook);
 router.delete("/books/:id", bookController.deleteBook);

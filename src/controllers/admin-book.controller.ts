@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
 import * as bookService from "../services/book.service";
 import { BadRequestError } from "../lib/errors";
-import { bookIdParamSchema, createBookSchema, updateBookSchema } from "../schemas/book.schema";
+import { adminListBooksQuerySchema, bookIdParamSchema, createBookSchema, updateBookSchema } from "../schemas/book.schema";
+
+export async function listBooks(req: Request, res: Response) {
+  const query = adminListBooksQuerySchema.parse(req.query);
+  res.json(await bookService.listBooksAdmin(query));
+}
 
 export async function createBook(req: Request, res: Response) {
   const input = createBookSchema.parse(req.body);

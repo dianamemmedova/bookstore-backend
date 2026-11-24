@@ -33,3 +33,19 @@ export function presentBook(book: Book): PublicBook {
     inStock: book.stock === null || book.stock > 0,
   };
 }
+
+// Admin panel üçün: dəqiq stok və tarixlər də görünür (müştəriyə göstərilmir)
+export type AdminBook = PublicBook & {
+  stock: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function presentAdminBook(book: Book): AdminBook {
+  return {
+    ...presentBook(book),
+    stock: book.stock,
+    createdAt: book.createdAt.toISOString(),
+    updatedAt: book.updatedAt.toISOString(),
+  };
+}

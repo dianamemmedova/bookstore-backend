@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { registerSchema, loginSchema } from "../schemas/auth.schema";
 import { updateMeSchema, changePasswordSchema } from "../schemas/me.schema";
-import { listBooksQuerySchema, createBookSchema, updateBookSchema } from "../schemas/book.schema";
+import { listBooksQuerySchema, adminListBooksQuerySchema, createBookSchema, updateBookSchema } from "../schemas/book.schema";
 import { setQuantitySchema, mergeCartSchema } from "../schemas/cart.schema";
 import { createWishlistSchema, updateWishlistSchema } from "../schemas/wishlist.schema";
 import { validatePromoSchema, createPromoSchema, updatePromoSchema } from "../schemas/promo.schema";
@@ -136,6 +136,8 @@ const schemas: Record<string, Json> = {
     year: nullable(int), pages: nullable(int), subjects: arrayOf(str),
     priceCents: { ...int, description: "Qiymət qəpiklə" }, price: { type: "number", description: "Qiymət AZN ilə" }, inStock: bool,
   }),
+  AdminBook: { allOf: [ref("Book"), obj({ stock: { ...nullable(int), description: "Qalıq (null = limitsiz)" }, createdAt: dateTime, updatedAt: dateTime })] },
+  AdminBookList: { allOf: [ref("Page"), obj({ items: arrayOf(ref("AdminBook")) })] },
   BookList: { allOf: [ref("Page"), obj({ items: arrayOf(ref("Book")) })] },
   Cart: obj({
     items: arrayOf(obj({ bookId: int, quantity: int, book: ref("Book"), lineTotalCents: int, available: { ...bool, description: "false: admin stoku azaldıb, miqdar artıq mövcud deyil" } })),
@@ -192,7 +194,7 @@ const operations: [string, string, Op][] = [
   // Profil
   ["get", "/me", { tag: "Profil", summary: "Öz profilim", auth: "user", ok: ok(ref("User")) }],
   ["patch", "/me", { tag: "Profil", summary: "Profili dəyiş", auth: "user", body: updateMeSchema, ok: ok(ref("User")) }],
-  ["put", "/me/password", { tag: "Profil", summary: "Parolu dəyiş", auth: "user", body: changePasswordSchema, ok: ok(ref("Message")), errors: { 400: "Cari parol yanlışdır (WRONG_PASSWORD) və ya yeni parol uyğun deyil" } }],
+  ["put", "/me/password", { tag: "Profil", summary: "Parolu dəyiş", auth: "user", body: changePasswordSchema, ok: noContent, errors: { 400: "Cari parol yanlışdır (WRONG_PASSWORD) və ya yeni parol uyğun deyil" } }],
 
   // Kitablar
   ["get", "/books", { tag: "Kitablar", summary: "Kataloq (axtarış, filtr, sıralama)", query: listBooksQuerySchema, ok: ok(ref("BookList")) }],
@@ -246,10 +248,11 @@ const operations: [string, string, Op][] = [
 
   // Admin: istifadəçilər, kitablar
   ["get", "/admin/users", { tag: "Admin: istifadəçilər", summary: "İstifadəçi siyahısı", auth: "admin", query: paginationSchema, ok: ok({ allOf: [ref("Page"), obj({ items: arrayOf(ref("User")) })] }) }],
-  ["post", "/admin/books", { tag: "Admin: kitablar", summary: "Kitab yarat", example: { title: "Nümunə kitab", author: "Müəllif", price: 12.5, stock: 20, subjects: ["Roman"], year: 2020, pages: 300, description: "Qısa təsvir" }, description: "`price` AZN ilə (ən çox 2 onluq). `coverUrl` göndərilmir, üz qabığı ayrıca yüklənir.", auth: "admin", body: createBookSchema, ok: created(ref("Book")) }],
-  ["patch", "/admin/books/{id}", { tag: "Admin: kitablar", summary: "Kitabı dəyiş", auth: "admin", path: idPath("Kitab"), body: updateBookSchema, ok: ok(ref("Book")) }],
+  ["get", "/admin/books", { tag: "Admin: kitablar", summary: "Kitab siyahısı (dəqiq stok ilə)", description: "Müştəri kataloqu ilə eyni axtarış/filtr/sıralama + `stockStatus` (in, low ≤5, out, unlimited). Cavabda dəqiq `stock` var.", auth: "admin", query: adminListBooksQuerySchema, ok: ok(ref("AdminBookList")) }],
+  ["post", "/admin/books", { tag: "Admin: kitablar", summary: "Kitab yarat", example: { title: "Nümunə kitab", author: "Müəllif", price: 12.5, stock: 20, subjects: ["Roman"], year: 2020, pages: 300, description: "Qısa təsvir" }, description: "`price` AZN ilə (ən çox 2 onluq). `coverUrl` göndərilmir, üz qabığı ayrıca yüklənir.", auth: "admin", body: createBookSchema, ok: created(ref("AdminBook")) }],
+  ["patch", "/admin/books/{id}", { tag: "Admin: kitablar", summary: "Kitabı dəyiş", auth: "admin", path: idPath("Kitab"), body: updateBookSchema, ok: ok(ref("AdminBook")) }],
   ["delete", "/admin/books/{id}", { tag: "Admin: kitablar", summary: "Kitabı sil", description: "Sifarişdə olan kitab silinmir (409 RELATION_CONFLICT).", auth: "admin", path: idPath("Kitab"), ok: noContent, errors: { 409: "RELATION_CONFLICT" } }],
-  ["post", "/admin/books/{id}/cover", { tag: "Admin: kitablar", summary: "Üz qabığı yüklə", description: "JPEG, PNG və ya WEBP, ən çox 2 MB. Fayl tipi uzantıdan yox, faylın içindən (magic bytes) yoxlanır. Köhnə şəkil silinir.", auth: "admin", path: idPath("Kitab"), multipart: { type: "object", required: ["cover"], properties: { cover: { type: "string", format: "binary" } } }, ok: ok(ref("Book")) }],
+  ["post", "/admin/books/{id}/cover", { tag: "Admin: kitablar", summary: "Üz qabığı yüklə", description: "JPEG, PNG və ya WEBP, ən çox 2 MB. Fayl tipi uzantıdan yox, faylın içindən (magic bytes) yoxlanır. Köhnə şəkil silinir.", auth: "admin", path: idPath("Kitab"), multipart: { type: "object", required: ["cover"], properties: { cover: { type: "string", format: "binary" } } }, ok: ok(ref("AdminBook")) }],
 
   // Admin: promo
   ["get", "/admin/promos", { tag: "Admin: promo", summary: "Promo kodları", auth: "admin", query: paginationSchema, ok: ok({ allOf: [ref("Page"), obj({ items: arrayOf(obj({ id: int, code: str, description: nullable(str), discountPercent: int, isActive: bool, expiresAt: nullable(dateTime), usedCount: int, createdAt: dateTime })) })] }) }],

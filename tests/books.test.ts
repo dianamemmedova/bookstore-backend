@@ -95,3 +95,48 @@ describe("Kitablar: ictimai siyahı", () => {
     expect((await api().get("/books/99999999")).status).toBe(404);
   });
 });
+
+describe("Admin kitab siyahısı", () => {
+  let adm: Awaited<ReturnType<typeof makeAdmin>>;
+  let usr: Awaited<ReturnType<typeof makeUser>>;
+  beforeAll(async () => {
+    await resetDb();
+    adm = await makeAdmin();
+    usr = await makeUser();
+    const mk = (title: string, stock: number | null) => api().post("/admin/books").set(bearer(adm.token)).send(newBook({ title, stock }));
+    await mk("Bol", 50);
+    await mk("Az", 3);
+    await mk("Qurtarıb", 0);
+    await mk("Limitsiz", null);
+  });
+
+  it("yalnız admin görür (401/403) və dəqiq stok qaytarır", async () => {
+    expect((await api().get("/admin/books")).status).toBe(401);
+    expect((await api().get("/admin/books").set(bearer(usr.token))).status).toBe(403);
+    const res = await api().get("/admin/books?sort=title").set(bearer(adm.token));
+    expect(res.status).toBe(200);
+    expect(res.body.items.map((b: any) => [b.title, b.stock])).toEqual([["Az", 3], ["Bol", 50], ["Limitsiz", null], ["Qurtarıb", 0]]);
+    expect(res.body.items[0].createdAt).toBeTruthy();
+  });
+
+  it("müştəri siyahısı stoku göstərmir", async () => {
+    const res = await api().get("/books");
+    expect(res.body.items.every((b: any) => !("stock" in b))).toBe(true);
+  });
+
+  it("stockStatus filtri: in / low / out / unlimited; yanlış dəyər 400", async () => {
+    const titles = async (s: string) => (await api().get(`/admin/books?stockStatus=${s}&sort=title`).set(bearer(adm.token))).body.items.map((b: any) => b.title);
+    expect(await titles("out")).toEqual(["Qurtarıb"]);
+    expect(await titles("low")).toEqual(["Az"]);
+    expect(await titles("unlimited")).toEqual(["Limitsiz"]);
+    expect(await titles("in")).toEqual(["Az", "Bol", "Limitsiz"]);
+    expect((await api().get("/admin/books?stockStatus=abc").set(bearer(adm.token))).status).toBe(400);
+  });
+
+  it("axtarış stok filtri ilə birlikdə işləyir; yaratma cavabında da stok var", async () => {
+    const r = await api().get("/admin/books?q=bol&stockStatus=in").set(bearer(adm.token));
+    expect(r.body.items.map((b: any) => b.title)).toEqual(["Bol"]);
+    const created = await api().post("/admin/books").set(bearer(adm.token)).send(newBook({ stock: 7 }));
+    expect(created.body.stock).toBe(7);
+  });
+});
