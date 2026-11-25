@@ -11,12 +11,14 @@ enum Role {
   USER
   ADMIN
 }
+
 enum OrderStatus {
   PENDING
   CONFIRMED
   DELIVERED
   CANCELLED
 }
+
 enum EventType {
   AUTHOR
   KIDS
@@ -35,14 +37,15 @@ enum PayMethod {
 }
 
 model User {
-  id             Int      @id @default(autoincrement())
-  email          String   @unique
-  firstName      String   @map("first_name")
-  lastName       String   @map("last_name")
-  passwordHash   String   @map("password_hash")
-  role           Role     @default(USER)
-  marketingOptIn Boolean  @default(false) @map("marketing_opt_in")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  passwordHash String   @map("password_hash")
+  role         Role     @default(USER)
+  marketingOptIn Boolean @default(false) @map("marketing_opt_in")
+  createdAt    DateTime @default(now()) @map("created_at")
+
   cartItems CartItem[]
   wishlists Wishlist[]
   promoRedemptions PromoRedemption[]
@@ -66,10 +69,14 @@ model Book {
   subjects    String[]
   priceCents  Int      @map("price_cents")
   stock       Int?
+  // 0–90: endirim faizi. priceCents həmişə "adi" qiymətdir, satış qiyməti presentBook-da hesablanır
   discountPercent Int     @default(0) @map("discount_percent")
   isAudiobook     Boolean @default(false) @map("is_audiobook")
+  // Audio faylın adı (yalnız ad). Fayl açıq qovluqda deyil, private/audio-dadır və yalnız alanlara axıdılır
+  audioFile       String? @map("audio_file")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+
   cartItems     CartItem[]
   wishlistItems WishlistItem[]
   orderItems    OrderItem[]
