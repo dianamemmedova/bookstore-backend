@@ -10,10 +10,7 @@ import authRoutes from "./routes/auth.routes";
 import meRoutes from "./routes/me.routes";
 import adminRoutes from "./routes/admin.routes";
 import bookRoutes from "./routes/book.routes";
-import docsRoutes from "./docs/docs.routes";
-import { UPLOADS_DIR } from "./lib/cover-storage";
 import cartRoutes from "./routes/cart.routes";
-import { publicWishlistRouter, wishlistRouter } from "./routes/wishlist.routes";
 import promoRoutes from "./routes/promo.routes";
 import orderRoutes from "./routes/order.routes";
 import contactRoutes from "./routes/contact.routes";
@@ -21,6 +18,10 @@ import newsletterRoutes from "./routes/newsletter.routes";
 import giftCardRoutes from "./routes/gift-card.routes";
 import { eventRouter, storeRouter } from "./routes/store.routes";
 import { bookReviewRouter, reviewRouter } from "./routes/review.routes";
+import { publicWishlistRouter, wishlistRouter } from "./routes/wishlist.routes";
+import audioRoutes from "./routes/audio.routes";
+import docsRoutes from "./docs/docs.routes";
+import { UPLOADS_DIR } from "./lib/cover-storage";
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.get("/health", async (_req, res) => {
 });
 app.use(docsRoutes);
 app.use("/uploads", express.static(UPLOADS_DIR, { index: false, dotfiles: "deny" }));
+app.use("/audio", audioRoutes);
 app.use("/auth", authRoutes);
 app.use("/me", meRoutes);
 app.use("/admin", adminRoutes);
