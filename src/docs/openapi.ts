@@ -134,7 +134,10 @@ const schemas: Record<string, Json> = {
   Book: obj({
     id: int, externalId: nullable(str), title: str, author: str, description: nullable(str), coverUrl: nullable(str),
     year: nullable(int), pages: nullable(int), subjects: arrayOf(str),
-    priceCents: { ...int, description: "Qiymət qəpiklə" }, price: { type: "number", description: "Qiymət AZN ilə" }, inStock: bool,
+    priceCents: { ...int, description: "Adi qiymət qəpiklə" }, price: { type: "number", description: "Adi qiymət AZN ilə" },
+    discountPercent: { ...int, description: "Endirim faizi (0–90), 0 = endirim yoxdur" },
+    salePriceCents: { ...int, description: "Müştərinin ödəyəcəyi qiymət (endirimlə), qəpiklə. Səbət və sifariş bunu işlədir" }, salePrice: { type: "number", description: "Satış qiyməti AZN ilə" },
+    isAudiobook: bool, inStock: bool,
   }),
   AdminBook: { allOf: [ref("Book"), obj({ stock: { ...nullable(int), description: "Qalıq (null = limitsiz)" }, createdAt: dateTime, updatedAt: dateTime })] },
   AdminBookList: { allOf: [ref("Page"), obj({ items: arrayOf(ref("AdminBook")) })] },
@@ -249,7 +252,7 @@ const operations: [string, string, Op][] = [
   // Admin: istifadəçilər, kitablar
   ["get", "/admin/users", { tag: "Admin: istifadəçilər", summary: "İstifadəçi siyahısı", auth: "admin", query: paginationSchema, ok: ok({ allOf: [ref("Page"), obj({ items: arrayOf(ref("User")) })] }) }],
   ["get", "/admin/books", { tag: "Admin: kitablar", summary: "Kitab siyahısı (dəqiq stok ilə)", description: "Müştəri kataloqu ilə eyni axtarış/filtr/sıralama + `stockStatus` (in, low ≤5, out, unlimited). Cavabda dəqiq `stock` var.", auth: "admin", query: adminListBooksQuerySchema, ok: ok(ref("AdminBookList")) }],
-  ["post", "/admin/books", { tag: "Admin: kitablar", summary: "Kitab yarat", example: { title: "Nümunə kitab", author: "Müəllif", price: 12.5, stock: 20, subjects: ["Roman"], year: 2020, pages: 300, description: "Qısa təsvir" }, description: "`price` AZN ilə (ən çox 2 onluq). `coverUrl` göndərilmir, üz qabığı ayrıca yüklənir.", auth: "admin", body: createBookSchema, ok: created(ref("AdminBook")) }],
+  ["post", "/admin/books", { tag: "Admin: kitablar", summary: "Kitab yarat", example: { title: "Nümunə kitab", author: "Müəllif", price: 12.5, discountPercent: 20, isAudiobook: false, stock: 20, subjects: ["Roman"], year: 2020, pages: 300, description: "Qısa təsvir" }, description: "`price` adi qiymətdir, AZN ilə (ən çox 2 onluq). `discountPercent` 0–90: satış qiyməti `salePrice` avtomatik hesablanır. `isAudiobook` audio kitab işarəsidir. `coverUrl` göndərilmir, üz qabığı ayrıca yüklənir.", auth: "admin", body: createBookSchema, ok: created(ref("AdminBook")) }],
   ["patch", "/admin/books/{id}", { tag: "Admin: kitablar", summary: "Kitabı dəyiş", auth: "admin", path: idPath("Kitab"), body: updateBookSchema, ok: ok(ref("AdminBook")) }],
   ["delete", "/admin/books/{id}", { tag: "Admin: kitablar", summary: "Kitabı sil", description: "Sifarişdə olan kitab silinmir (409 RELATION_CONFLICT).", auth: "admin", path: idPath("Kitab"), ok: noContent, errors: { 409: "RELATION_CONFLICT" } }],
   ["post", "/admin/books/{id}/cover", { tag: "Admin: kitablar", summary: "Üz qabığı yüklə", description: "JPEG, PNG və ya WEBP, ən çox 2 MB. Fayl tipi uzantıdan yox, faylın içindən (magic bytes) yoxlanır. Köhnə şəkil silinir.", auth: "admin", path: idPath("Kitab"), multipart: { type: "object", required: ["cover"], properties: { cover: { type: "string", format: "binary" } } }, ok: ok(ref("AdminBook")) }],

@@ -46,10 +46,12 @@ function stockCondition(status: AdminListBooksQuery["stockStatus"]): Prisma.Book
 }
 
 async function findBooks(query: ListBooksQuery & Pick<AdminListBooksQuery, "stockStatus">) {
-  const { page, limit, q, subject, minPrice, maxPrice, sort, stockStatus } = query;
+  const { page, limit, q, subject, minPrice, maxPrice, sort, stockStatus, discounted, audiobook } = query;
 
   const baseWhere: Prisma.BookWhereInput = {
     ...(subject && { subjects: { has: subject.toLowerCase() } }),
+    ...(discounted && { discountPercent: { gt: 0 } }),
+    ...(audiobook !== undefined && { isAudiobook: audiobook }),
     ...((minPrice !== undefined || maxPrice !== undefined) && {
       priceCents: {
         ...(minPrice !== undefined && { gte: Math.round(minPrice * 100) }),

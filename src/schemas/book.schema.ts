@@ -3,11 +3,15 @@ import { paginationSchema } from "./common.schema";
 
 export const BOOK_SORTS = ["newest", "title", "year-desc", "price-asc", "price-desc"] as const;
 
+const flag = z.enum(["true", "false"], { error: 'Yalnız "true" və ya "false"' }).transform((v) => v === "true");
+
 const listShape = {
   q: z.string({ error: "q mətn olmalıdır" }).trim().min(1, { error: "q boş ola bilməz" }).max(100).optional(),
   subject: z.string({ error: "subject mətn olmalıdır" }).trim().min(1).max(60).optional(),
   minPrice: z.coerce.number({ error: "minPrice rəqəm olmalıdır" }).min(0, { error: "minPrice mənfi ola bilməz" }).optional(),
   maxPrice: z.coerce.number({ error: "maxPrice rəqəm olmalıdır" }).min(0, { error: "maxPrice mənfi ola bilməz" }).optional(),
+  discounted: flag.optional(), // true: yalnız endirimli kitablar
+  audiobook: flag.optional(), // true: yalnız audio kitablar, false: audio olmayanlar
   sort: z.enum(BOOK_SORTS, { error: `sort bunlardan biri olmalıdır: ${BOOK_SORTS.join(", ")}` }).default("newest"),
 };
 
@@ -63,6 +67,12 @@ const bookFields = {
     .array(z.string().trim().toLowerCase().min(1).max(60), { error: "subjects mətn siyahısı olmalıdır" })
     .max(10, { error: "subjects ən çox 10 ədəd ola bilər" }),
   price: priceAzn,
+  discountPercent: z
+    .number({ error: "discountPercent rəqəm olmalıdır" })
+    .int({ error: "discountPercent tam ədəd olmalıdır" })
+    .min(0, { error: "discountPercent mənfi ola bilməz" })
+    .max(90, { error: "discountPercent ən çox 90 ola bilər" }),
+  isAudiobook: z.boolean({ error: "isAudiobook true/false olmalıdır" }),
   // null = limitsiz (məs. e-kitab), 0 = qurtarıb
   stock: z
     .number({ error: "stock rəqəm olmalıdır" })
@@ -82,6 +92,8 @@ export const createBookSchema = z.strictObject({
   pages: bookFields.pages.optional(),
   subjects: bookFields.subjects.default([]),
   stock: bookFields.stock.default(null),
+  discountPercent: bookFields.discountPercent.default(0),
+  isAudiobook: bookFields.isAudiobook.default(false),
 });
 
 export const updateBookSchema = z
@@ -94,6 +106,8 @@ export const updateBookSchema = z
     pages: bookFields.pages.optional(),
     subjects: bookFields.subjects.optional(),
     stock: bookFields.stock.optional(),
+    discountPercent: bookFields.discountPercent.optional(),
+    isAudiobook: bookFields.isAudiobook.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, { error: "Ən azı bir sahə göndərilməlidir" });
 

@@ -37,7 +37,7 @@ export async function makeUser(opts: { role?: Role; email?: string; firstName?: 
 }
 export const makeAdmin = () => makeUser({ role: "ADMIN", firstName: "Admin" });
 
-export async function makeBook(opts: { price?: number; stock?: number | null; title?: string } = {}) {
+export async function makeBook(opts: { price?: number; stock?: number | null; title?: string; discountPercent?: number; isAudiobook?: boolean } = {}) {
   counter++;
   return prisma.book.create({
     data: {
@@ -46,6 +46,8 @@ export async function makeBook(opts: { price?: number; stock?: number | null; ti
       subjects: [],
       priceCents: Math.round((opts.price ?? 10) * 100),
       stock: opts.stock === undefined ? 10 : opts.stock,
+      discountPercent: opts.discountPercent ?? 0,
+      isAudiobook: opts.isAudiobook ?? false,
     },
   });
 }

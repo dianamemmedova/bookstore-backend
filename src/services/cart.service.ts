@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { AppError, NotFoundError } from "../lib/errors";
-import { presentBook } from "../lib/book-presenter";
+import { presentBook, salePriceCents } from "../lib/book-presenter";
 import type { MergeCartInput } from "../schemas/cart.schema";
 
 const MAX_QUANTITY = 99;
@@ -19,7 +19,7 @@ export async function getCart(userId: number) {
       bookId: row.bookId,
       quantity: row.quantity,
       book,
-      lineTotalCents: row.book.priceCents * row.quantity,
+      lineTotalCents: salePriceCents(row.book.priceCents, row.book.discountPercent) * row.quantity,
       // Admin stoku azaldıbsa və ya kitab qurtarıbsa false: front xəbərdarlıq göstərə bilər
       available: row.book.stock === null || row.book.stock >= row.quantity,
     };

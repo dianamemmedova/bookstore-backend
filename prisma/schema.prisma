@@ -66,6 +66,8 @@ model Book {
   subjects    String[]
   priceCents  Int      @map("price_cents")
   stock       Int?
+  discountPercent Int     @default(0) @map("discount_percent")
+  isAudiobook     Boolean @default(false) @map("is_audiobook")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   cartItems     CartItem[]

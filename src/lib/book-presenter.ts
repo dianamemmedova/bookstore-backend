@@ -10,10 +10,19 @@ export type PublicBook = {
   year: number | null;
   pages: number | null;
   subjects: string[];
-  priceCents: number;
-  price: number;
+  priceCents: number; // adi qiymət (qəpik)
+  price: number; // adi qiymət (AZN)
+  discountPercent: number; // 0 = endirim yoxdur
+  salePriceCents: number; // müştərinin ödəyəcəyi qiymət (endirimlə)
+  salePrice: number;
+  isAudiobook: boolean;
   inStock: boolean;
 };
+
+// Endirimli satış qiyməti, qəpiyə yuvarlaqlanır. Səbət və sifariş də eyni düsturu işlədir.
+export function salePriceCents(priceCents: number, discountPercent: number): number {
+  return Math.round((priceCents * (100 - discountPercent)) / 100);
+}
 
 // Bazadakı sətri müştəriyə göstərəcəyimiz formaya çevirir.
 // stock null = limitsiz (e-kitab), 0 = qurtarıb.
@@ -30,6 +39,10 @@ export function presentBook(book: Book): PublicBook {
     subjects: book.subjects,
     priceCents: book.priceCents,
     price: book.priceCents / 100,
+    discountPercent: book.discountPercent,
+    salePriceCents: salePriceCents(book.priceCents, book.discountPercent),
+    salePrice: salePriceCents(book.priceCents, book.discountPercent) / 100,
+    isAudiobook: book.isAudiobook,
     inStock: book.stock === null || book.stock > 0,
   };
 }

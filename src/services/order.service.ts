@@ -2,6 +2,7 @@ import { Prisma, OrderStatus } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 import { AppError, ConflictError, NotFoundError } from "../lib/errors";
 import { presentAdminOrder, presentOrder } from "../lib/order-presenter";
+import { salePriceCents } from "../lib/book-presenter";
 import { redeemPromo } from "./promo.service";
 import type { AdminOrdersQuery, CheckoutInput } from "../schemas/order.schema";
 
@@ -25,6 +26,7 @@ type LockedBook = {
   author: string;
   cover_url: string | null;
   price_cents: number;
+  discount_percent: number;
   stock: number | null;
 };
 
@@ -42,7 +44,7 @@ export async function checkout(userId: number, input: CheckoutInput) {
     // ORDER BY id: hamı eyni sırada kilidləyir, ona görə iki sifariş bir-birini ilişdirmir (deadlock).
     const bookIds = cart.map((item) => item.bookId);
     const books = await tx.$queryRaw<LockedBook[]>(Prisma.sql`
-      SELECT id, title, author, cover_url, price_cents, stock
+      SELECT id, title, author, cover_url, price_cents, discount_percent, stock
       FROM books WHERE id IN (${Prisma.join(bookIds)}) ORDER BY id FOR UPDATE
     `);
     const bookById = new Map(books.map((book) => [book.id, book]));
@@ -70,7 +72,7 @@ export async function checkout(userId: number, input: CheckoutInput) {
     }
 
     // Məbləğlər: hamısı integer qəpik, serverdə hesablanır
-    const subtotalCents = lines.reduce((sum, line) => sum + line.book.price_cents * line.quantity, 0);
+    const subtotalCents = lines.reduce((sum, line) => sum + salePriceCents(line.book.price_cents, line.book.discount_percent) * line.quantity, 0);
 
     let discountCents = 0;
     let promo: { id: number; code: string; discountPercent: number } | null = null;
@@ -107,7 +109,8 @@ export async function checkout(userId: number, input: CheckoutInput) {
             title: book.title,
             author: book.author,
             coverUrl: book.cover_url,
-            unitPriceCents: book.price_cents,
+            // Sifarişdə o anki satış qiyməti saxlanır (sonradan endirim dəyişsə, köhnə sifariş dəyişmir)
+            unitPriceCents: salePriceCents(book.price_cents, book.discount_percent),
             quantity,
           })),
         },
