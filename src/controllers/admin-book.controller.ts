@@ -25,6 +25,19 @@ export async function deleteBook(req: Request, res: Response) {
   res.status(204).end();
 }
 
+export async function uploadAudio(req: Request, res: Response) {
+  const { id } = bookIdParamSchema.parse(req.params);
+  if (!req.file) {
+    throw new BadRequestError("audio adlı fayl göndərilməlidir (multipart/form-data)", "FILE_REQUIRED");
+  }
+  res.json(await bookService.setBookAudio(id, req.file.path));
+}
+
+export async function removeAudio(req: Request, res: Response) {
+  const { id } = bookIdParamSchema.parse(req.params);
+  res.json(await bookService.removeBookAudio(id));
+}
+
 export async function uploadCover(req: Request, res: Response) {
   const { id } = bookIdParamSchema.parse(req.params);
   if (!req.file) {

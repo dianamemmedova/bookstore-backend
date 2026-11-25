@@ -1,8 +1,8 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import * as z from "zod";
+import multer from "multer";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../lib/errors";
 import { isPrismaError, PrismaErrorCode } from "../lib/prisma-errors";
-import multer from "multer";
 
 function isBodyParseError(err: unknown): boolean {
   return (
@@ -22,12 +22,13 @@ export function toAppError(err: unknown): AppError {
     }));
     return new ValidationError("Sorğu məlumatları yanlışdır", details);
   }
-    if (err instanceof multer.MulterError) {
+  if (err instanceof multer.MulterError) {
+    const isAudio = err.field === "audio";
     const message =
       err.code === "LIMIT_FILE_SIZE"
-        ? "Şəkil 2 MB-dan böyük ola bilməz"
+        ? isAudio ? "Audio fayl 200 MB-dan böyük ola bilməz" : "Şəkil 2 MB-dan böyük ola bilməz"
         : err.code === "LIMIT_UNEXPECTED_FILE"
-          ? "Fayl sahəsinin adı cover olmalıdır"
+          ? "Fayl sahəsinin adı cover (şəkil) və ya audio olmalıdır"
           : "Fayl yükləmə xətası";
     return new ValidationError(message);
   }

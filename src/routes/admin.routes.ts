@@ -8,7 +8,7 @@ import * as giftCardController from "../controllers/gift-card.controller";
 import * as storeController from "../controllers/store.controller";
 import * as statsController from "../controllers/admin-stats.controller";
 import { adminOnly } from "../middleware/stacks";
-import { uploadCover } from "../middleware/upload";
+import { uploadAudio, uploadCover } from "../middleware/upload";
 
 const router = Router();
 router.use(adminOnly);
@@ -20,6 +20,8 @@ router.post("/books", bookController.createBook);
 router.patch("/books/:id", bookController.updateBook);
 router.delete("/books/:id", bookController.deleteBook);
 router.post("/books/:id/cover", uploadCover, bookController.uploadCover);
+router.post("/books/:id/audio", uploadAudio, bookController.uploadAudio);
+router.delete("/books/:id/audio", bookController.removeAudio);
 
 router.get("/promos", promoController.listPromos);
 router.post("/promos", promoController.createPromo);

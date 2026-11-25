@@ -16,16 +16,17 @@ export type PublicBook = {
   salePriceCents: number; // müştərinin ödəyəcəyi qiymət (endirimlə)
   salePrice: number;
   isAudiobook: boolean;
+  hasAudio: boolean; // audio fayl yüklənib (fayl adı və ya yolu heç vaxt göstərilmir)
   inStock: boolean;
 };
 
+// Bazadakı sətri müştəriyə göstərəcəyimiz formaya çevirir.
+// stock null = limitsiz (e-kitab), 0 = qurtarıb.
 // Endirimli satış qiyməti, qəpiyə yuvarlaqlanır. Səbət və sifariş də eyni düsturu işlədir.
 export function salePriceCents(priceCents: number, discountPercent: number): number {
   return Math.round((priceCents * (100 - discountPercent)) / 100);
 }
 
-// Bazadakı sətri müştəriyə göstərəcəyimiz formaya çevirir.
-// stock null = limitsiz (e-kitab), 0 = qurtarıb.
 export function presentBook(book: Book): PublicBook {
   return {
     id: book.id,
@@ -43,6 +44,7 @@ export function presentBook(book: Book): PublicBook {
     salePriceCents: salePriceCents(book.priceCents, book.discountPercent),
     salePrice: salePriceCents(book.priceCents, book.discountPercent) / 100,
     isAudiobook: book.isAudiobook,
+    hasAudio: book.audioFile !== null,
     inStock: book.stock === null || book.stock > 0,
   };
 }

@@ -1,8 +1,10 @@
+import { unlink } from "node:fs/promises";
 import type { Prisma } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 import { NotFoundError } from "../lib/errors";
 import { presentAdminBook, presentBook } from "../lib/book-presenter";
 import { deleteCover, saveCover } from "../lib/cover-storage";
+import { deleteAudio, finalizeAudio } from "../lib/audio-storage";
 import type { AdminListBooksQuery, CreateBookInput, ListBooksQuery, UpdateBookInput } from "../schemas/book.schema";
 
 const ORDER_BY: Record<ListBooksQuery["sort"], Prisma.BookOrderByWithRelationInput> = {
@@ -124,6 +126,30 @@ export async function deleteBook(id: string): Promise<void> {
   // Sifarişlərdə istifadə olunan kitabı silməyə baza icazə verməyəcək (409 RELATION_CONFLICT)
   const book = await prisma.book.delete({ where: { id: Number(id) } });
   await deleteCover(book.coverUrl);
+  await deleteAudio(book.audioFile);
+}
+
+// Audio yükləyəndə kitab avtomatik "audio kitab" olur
+export async function setBookAudio(id: string, tmpPath: string) {
+  const existing = await prisma.book.findUnique({ where: { id: Number(id) } });
+  if (!existing) {
+    await unlink(tmpPath).catch(() => {});
+    throw new NotFoundError("Kitab");
+  }
+
+  const audioFile = await finalizeAudio(tmpPath);
+  const book = await prisma.book.update({ where: { id: existing.id }, data: { audioFile, isAudiobook: true } });
+  await deleteAudio(existing.audioFile);
+  return presentAdminBook(book);
+}
+
+export async function removeBookAudio(id: string) {
+  const existing = await prisma.book.findUnique({ where: { id: Number(id) } });
+  if (!existing) throw new NotFoundError("Kitab");
+
+  const book = await prisma.book.update({ where: { id: existing.id }, data: { audioFile: null } });
+  await deleteAudio(existing.audioFile);
+  return presentAdminBook(book);
 }
 
 export async function setBookCover(id: string, file: Buffer) {
