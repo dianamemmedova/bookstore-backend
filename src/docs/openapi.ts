@@ -137,7 +137,9 @@ const schemas: Record<string, Json> = {
     priceCents: { ...int, description: "Adi qiymət qəpiklə" }, price: { type: "number", description: "Adi qiymət AZN ilə" },
     discountPercent: { ...int, description: "Endirim faizi (0–90), 0 = endirim yoxdur" },
     salePriceCents: { ...int, description: "Müştərinin ödəyəcəyi qiymət (endirimlə), qəpiklə. Səbət və sifariş bunu işlədir" }, salePrice: { type: "number", description: "Satış qiyməti AZN ilə" },
-    isAudiobook: bool, inStock: bool,
+    isAudiobook: bool,
+    hasAudio: { ...bool, description: "Audio fayl yüklənib. Fayl adı heç vaxt göstərilmir, dinləmə yalnız alanlara açılır" },
+    inStock: bool,
   }),
   AdminBook: { allOf: [ref("Book"), obj({ stock: { ...nullable(int), description: "Qalıq (null = limitsiz)" }, createdAt: dateTime, updatedAt: dateTime })] },
   AdminBookList: { allOf: [ref("Page"), obj({ items: arrayOf(ref("AdminBook")) })] },
@@ -202,6 +204,8 @@ const operations: [string, string, Op][] = [
   // Kitablar
   ["get", "/books", { tag: "Kitablar", summary: "Kataloq (axtarış, filtr, sıralama)", query: listBooksQuerySchema, ok: ok(ref("BookList")) }],
   ["get", "/books/{id}", { tag: "Kitablar", summary: "Kitabın detalları", path: idPath("Kitab"), ok: ok(ref("Book")), errors: { 404: "Kitab tapılmadı" } }],
+  ["get", "/books/{id}/audio-access", { tag: "Audio", summary: "Dinləmə linki al", description: "Yalnız kitabı alan (ləğv olunmamış sifarişi olan) istifadəçi və ya admin üçün. Cavabdakı `url` 2 saat işləyir və `GET /audio/{token}` ilə açılır. Almayıbsa 403, audio yüklənməyibsə 404.", auth: "user", path: idPath("Kitab"), ok: ok(obj({ url: { ...str, example: "/audio/eyJhbGciOi..." }, expiresInSeconds: int })), errors: { 403: "Kitab alınmayıb", 404: "Audio yoxdur" } }],
+  ["get", "/audio/{token}", { tag: "Audio", summary: "Audio faylı axıt", description: "`audio-access` cavabındakı linkdir (token linkin içindədir, başlıq lazım deyil). `Range` başlığı dəstəklənir: pleyerdə irəli-geri çəkmək üçün 206 qaytarır. Token etibarsız və ya vaxtı bitibsə 401.", path: { token: "audio-access cavabından gələn token" }, ok: ok({ type: "string", format: "binary" }), errors: { 401: "Link etibarsızdır və ya vaxtı bitib", 404: "Audio yoxdur" } }],
 
   // Səbət
   ["get", "/cart", { tag: "Səbət", summary: "Səbətim", description: "Qiymətlər həmişə bazadakı cari qiymətdir.", auth: "user", ok: ok(ref("Cart")) }],
@@ -255,6 +259,8 @@ const operations: [string, string, Op][] = [
   ["post", "/admin/books", { tag: "Admin: kitablar", summary: "Kitab yarat", example: { title: "Nümunə kitab", author: "Müəllif", price: 12.5, discountPercent: 20, isAudiobook: false, stock: 20, subjects: ["Roman"], year: 2020, pages: 300, description: "Qısa təsvir" }, description: "`price` adi qiymətdir, AZN ilə (ən çox 2 onluq). `discountPercent` 0–90: satış qiyməti `salePrice` avtomatik hesablanır. `isAudiobook` audio kitab işarəsidir. `coverUrl` göndərilmir, üz qabığı ayrıca yüklənir.", auth: "admin", body: createBookSchema, ok: created(ref("AdminBook")) }],
   ["patch", "/admin/books/{id}", { tag: "Admin: kitablar", summary: "Kitabı dəyiş", auth: "admin", path: idPath("Kitab"), body: updateBookSchema, ok: ok(ref("AdminBook")) }],
   ["delete", "/admin/books/{id}", { tag: "Admin: kitablar", summary: "Kitabı sil", description: "Sifarişdə olan kitab silinmir (409 RELATION_CONFLICT).", auth: "admin", path: idPath("Kitab"), ok: noContent, errors: { 409: "RELATION_CONFLICT" } }],
+  ["post", "/admin/books/{id}/audio", { tag: "Admin: kitablar", summary: "Audio fayl yüklə", description: "MP3, M4A, OGG və ya WAV, ən çox 200 MB. Fayl tipi uzantıdan yox, faylın içindən yoxlanır. Fayl açıq qovluqda deyil, private qovluqda saxlanır. Kitab avtomatik `isAudiobook: true` olur. Köhnə fayl silinir.", auth: "admin", path: idPath("Kitab"), multipart: { type: "object", required: ["audio"], properties: { audio: { type: "string", format: "binary" } } }, ok: ok(ref("AdminBook")), errors: { 400: "INVALID_AUDIO" } }],
+  ["delete", "/admin/books/{id}/audio", { tag: "Admin: kitablar", summary: "Audio faylı sil", auth: "admin", path: idPath("Kitab"), ok: ok(ref("AdminBook")) }],
   ["post", "/admin/books/{id}/cover", { tag: "Admin: kitablar", summary: "Üz qabığı yüklə", description: "JPEG, PNG və ya WEBP, ən çox 2 MB. Fayl tipi uzantıdan yox, faylın içindən (magic bytes) yoxlanır. Köhnə şəkil silinir.", auth: "admin", path: idPath("Kitab"), multipart: { type: "object", required: ["cover"], properties: { cover: { type: "string", format: "binary" } } }, ok: ok(ref("AdminBook")) }],
 
   // Admin: promo
